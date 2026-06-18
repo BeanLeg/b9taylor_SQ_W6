@@ -1,19 +1,5 @@
 // ============================================================
-// Week 6 Example 2 — Free Roam Top-Down with Boss Battle
-// ============================================================
-// The player moves freely around a world larger than the canvas.
-// A smooth-follow camera keeps the player centred.
-// Enemy waves are loaded from JSON and chase the player.
-// A minimap in the bottom-right corner shows the player and
-// enemy positions at all times.
-// A giant orange blob boss spawns when the player enters the
-// boss zone at the top of the world. Defeat it to win.
-// Press B to skip straight to the boss for testing.
-//
-// Files:
-//   sketch.js           — all game logic
-//   data/enemies.json   — wave trigger positions, enemy data, boss data
-//   data/obstacles.json — obstacle positions in world coordinates
+// Week 6 Sidequest - Werewolf Hunt
 // ============================================================
 
 // ------------------------------------------------------------
