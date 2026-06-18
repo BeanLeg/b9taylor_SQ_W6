@@ -123,19 +123,17 @@ const STATE_OVER = "over";
 let gameState = STATE_PLAY;
 
 // ------------------------------------------------------------
-// SOUNDS — uncomment and fill in paths to add audio
+// SOUNDS
 // ------------------------------------------------------------
-// let shootSound;
-// let hitSound;
-// let playerHitSound;
-// let bossHitSound;
-// let bossMusic;
-// let winSound;
-// let music;
+let gunshotSound;
+let playerHitSound;
+let bgMusic;
 
 // IMAGES
 // --------
 let werewolfImg;
+let hunterImg;
+let bgForestImg;
 
 // ============================================================
 // preload()
@@ -144,15 +142,17 @@ function preload() {
   enemyData = loadJSON("data/enemies.json");
   obstacleData = loadJSON("data/obstacles.json");
   werewolfImg = loadImage("assets/images/werewolf.png");
+  hunterImg = loadImage("assets/images/hunter.png");
+  bgForestImg = loadImage("assets/images/bgforest.png");
+  gunshotSound = loadSound("assets/sounds/gunshot.mp3");
+  playerHitSound = loadSound("assets/sounds/playerHit.mp3");
+  bgMusic = loadSound("assets/sounds/bgmusic.mp3");
 
   // Uncomment to load sounds:
-  // shootSound     = loadSound("assets/sounds/shoot.wav");
   // hitSound       = loadSound("assets/sounds/hit.wav");
-  // playerHitSound = loadSound("assets/sounds/playerhit.wav");
   // bossHitSound   = loadSound("assets/sounds/bosshit.wav");
   // bossMusic      = loadSound("assets/sounds/bossmusic.mp3");
   // winSound       = loadSound("assets/sounds/win.wav");
-  // music          = loadSound("assets/sounds/music.mp3");
 }
 
 // ============================================================
@@ -168,25 +168,16 @@ function setup() {
     obstacles.push({ x: o.x, y: o.y, size: o.size });
   }
 
-  // Generate background shapes across the world
-  for (let i = 0; i < 120; i++) {
-    bgShapes.push({
-      x: random(WORLD_W),
-      y: random(WORLD_H),
-      type: random() > 0.5 ? "circle" : "rect",
-      size: random(10, 50),
-      r: floor(random(30, 70)),
-      g: floor(random(30, 70)),
-      b: floor(random(50, 100)),
-    });
-  }
-
   // Start camera so player is visible
   camX = player.x - width / 2;
   camY = player.y - height / 2;
 
   // Uncomment to start music:
   // music.loop();
+
+  if (bgMusic) {
+    bgMusic.loop();
+  }
 }
 
 // ============================================================
@@ -288,34 +279,20 @@ function drawObstacles() {
 
     push();
 
-    // Outer glow
+    // outer glow
     noStroke();
-    fill(255, 100, 0, glow);
+    fill(30, 30, 150, glow);
     rect(x - 4, y - 4, s + 8, s + 8, 8);
 
-    // Lava base
-    fill(180, 40, 0);
+    // Water base
+    fill(30, 30, 150);
     rect(x, y, s, s, 4);
 
-    // Lava surface patches
-    fill(220, 80, 10);
+    // water blue
+    fill(50, 80, 230);
     rect(x + s * 0.1, y + s * 0.1, s * 0.4, s * 0.35, 2);
     rect(x + s * 0.55, y + s * 0.5, s * 0.35, s * 0.3, 2);
     rect(x + s * 0.2, y + s * 0.6, s * 0.25, s * 0.25, 2);
-
-    // Crack lines
-    stroke(100, 20, 0);
-    strokeWeight(1.5);
-    line(x + s * 0.3, y, x + s * 0.5, y + s * 0.4);
-    line(x + s * 0.5, y + s * 0.4, x + s * 0.7, y + s * 0.6);
-    line(x, y + s * 0.5, x + s * 0.3, y + s * 0.7);
-    line(x + s * 0.3, y + s * 0.7, x + s * 0.6, y + s);
-
-    // Hot edge highlight
-    noStroke();
-    fill(255, 140, 0, 180);
-    rect(x, y, s, 3, 2);
-    rect(x, y, 3, s, 2);
 
     pop();
   }
@@ -350,7 +327,9 @@ function checkObstaclePlayerCollision() {
         player.bounceVY = (dy / len) * 8;
       }
 
-      // playerHitSound.play();
+      if (playerHitSound) {
+        playerHitSound.play();
+      }
 
       if (player.health <= 0) {
         gameState = STATE_OVER;
@@ -379,29 +358,22 @@ function applyBounce() {
 
 // ------------------------------------------------------------
 // drawBackground()
-// Draws background shapes in world coordinates.
-// Only shapes near the camera are drawn for performance.
+// Draws tiled background image in world coordinates.
+// The image is repeated to cover the entire world.
 // ------------------------------------------------------------
 function drawBackground() {
-  noStroke();
-  for (let i = 0; i < bgShapes.length; i++) {
-    let s = bgShapes[i];
+  // Draw tiled background image
+  let imgW = bgForestImg.width;
+  let imgH = bgForestImg.height;
 
-    // Skip shapes far from the camera view
-    if (
-      s.x < camX - s.size ||
-      s.x > camX + width + s.size ||
-      s.y < camY - s.size ||
-      s.y > camY + height + s.size
-    )
-      continue;
+  // Calculate starting tile position
+  let startX = floor(camX / imgW) * imgW;
+  let startY = floor(camY / imgH) * imgH;
 
-    fill(s.r, s.g, s.b, 160);
-
-    if (s.type === "circle") {
-      ellipse(s.x, s.y, s.size);
-    } else {
-      rect(s.x - s.size / 2, s.y - s.size / 2, s.size, s.size, 3);
+  // Draw tiles to cover the visible area plus margin
+  for (let x = startX; x < camX + width + imgW; x += imgW) {
+    for (let y = startY; y < camY + height + imgH; y += imgH) {
+      image(bgForestImg, x, y, imgW, imgH);
     }
   }
 
@@ -478,7 +450,9 @@ function handleInput() {
       vy: player.direction.y * BULLET_SPEED,
     });
     player.shootTimer = SHOOT_COOLDOWN;
-    // shootSound.play();
+    if (gunshotSound) {
+      gunshotSound.play();
+    }
   }
 }
 
@@ -668,7 +642,9 @@ function checkBossPlayerCollision() {
     player.health--;
     player.invincible = true;
     player.invincibleTimer = INVINCIBLE_FRAMES;
-    // playerHitSound.play();
+    if (playerHitSound) {
+      playerHitSound.play();
+    }
 
     if (player.health <= 0) {
       gameState = STATE_OVER;
@@ -689,7 +665,9 @@ function checkEnemyPlayerCollision() {
       player.health--;
       player.invincible = true;
       player.invincibleTimer = INVINCIBLE_FRAMES;
-      // playerHitSound.play();
+      if (playerHitSound) {
+        playerHitSound.play();
+      }
 
       if (player.health <= 0) {
         gameState = STATE_OVER;
@@ -737,36 +715,16 @@ function updateInvincibility() {
 function drawBoss() {
   if (!boss) return;
 
+  let dx = player.x - boss.x;
+  let dy = player.y - boss.y;
+  let angle = atan2(dy, dx) + HALF_PI;
+
   push();
-  let isCharging = boss.state === "charging";
-  fill(isCharging ? color(255, 180, 30) : color(255, 130, 20));
-  noStroke();
-
-  beginShape();
-  let numPoints = 48;
-  let wobble = isCharging ? 12 : 8;
-  for (let i = 0; i < numPoints; i++) {
-    let angle = (TWO_PI / numPoints) * i;
-    let noiseVal = noise(
-      cos(angle) * 0.8 + boss.blobT,
-      sin(angle) * 0.8 + boss.blobT,
-    );
-    let r = boss.r + map(noiseVal, 0, 1, -wobble, wobble);
-    vertex(boss.x + cos(angle) * r, boss.y + sin(angle) * r);
-  }
-  endShape(CLOSE);
-
-  fill(10);
-  ellipse(boss.x - 18, boss.y - 12, 16, 16);
-  ellipse(boss.x + 18, boss.y - 12, 16, 16);
-
-  stroke(10);
-  strokeWeight(4);
-  line(boss.x - 26, boss.y - 22, boss.x - 10, boss.y - 18);
-  line(boss.x + 10, boss.y - 18, boss.x + 26, boss.y - 22);
-
+  translate(boss.x, boss.y);
+  rotate(angle);
+  imageMode(CENTER);
+  image(werewolfImg, 0, 0, boss.r * 5, boss.r * 5);
   pop();
-  boss.blobT += 0.02;
 }
 
 // ------------------------------------------------------------
@@ -802,7 +760,7 @@ function drawEnemies() {
 // Drawn in world coordinates.
 // ------------------------------------------------------------
 function drawBullets() {
-  fill(255);
+  fill(175);
   noStroke();
   for (let i = 0; i < bullets.length; i++) {
     ellipse(bullets[i].x, bullets[i].y, 10);
@@ -812,40 +770,23 @@ function drawBullets() {
 // ------------------------------------------------------------
 // drawPlayer()
 // Drawn in world coordinates. Flickers while invincible.
+// Draws hunter.png and rotates based on direction faced.
 // ------------------------------------------------------------
 function drawPlayer() {
   if (player.invincible && floor(player.invincibleTimer / 6) % 2 === 0) return;
 
   push();
-  fill(0, 200, 180);
-  noStroke();
 
-  beginShape();
-  let numPoints = 48;
-  for (let i = 0; i < numPoints; i++) {
-    let angle = (TWO_PI / numPoints) * i;
-    let noiseVal = noise(
-      cos(angle) * 0.8 + player.blobT,
-      sin(angle) * 0.8 + player.blobT,
-    );
-    let r = player.r + map(noiseVal, 0, 1, -6, 6);
-    vertex(player.x + cos(angle) * r, player.y + sin(angle) * r);
-  }
-  endShape(CLOSE);
+  // Calculate rotation angle from direction vector
+  let angle = atan2(player.direction.y, player.direction.x) - PI / 2;
 
-  fill(10);
-  ellipse(player.x - 7, player.y - 5, 7, 7);
-  ellipse(player.x + 7, player.y - 5, 7, 7);
-
-  fill(255);
-  ellipse(
-    player.x + player.direction.x * (player.r - 4),
-    player.y + player.direction.y * (player.r - 4),
-    8,
-  );
+  // Translate to player position, rotate, then draw image centered
+  translate(player.x, player.y);
+  rotate(angle);
+  imageMode(CENTER);
+  image(hunterImg, 0, 0, player.r * 6, player.r * 4);
 
   pop();
-  player.blobT += 0.015;
 }
 
 // ------------------------------------------------------------
